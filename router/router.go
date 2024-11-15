@@ -1,8 +1,8 @@
 package router
 
 import (
-	"BIT-Helper/controller"
-	"BIT-Helper/middleware"
+	"publish-backend/controller"
+	"publish-backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,7 +10,7 @@ import (
 // 配置路由
 func SetRouter(router *gin.Engine) {
 	router.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{"msg": "Hello BIT-Helper!"})
+		ctx.JSON(200, gin.H{"msg": "Hello Easy Publish!"})
 	})
 	// 用户模块
 	user := router.Group("/user")
@@ -20,6 +20,14 @@ func SetRouter(router *gin.Engine) {
 		user.POST("/UserLogin", controller.UserLogin)
 		user.GET("/info", middleware.CheckLogin(false), controller.UserGetInfo)
 		user.PUT("/info", middleware.CheckLogin(true), controller.UpdateUserInfo)
+	}
+
+	//消息（文章）模块
+	message := router.Group("/message")
+	{
+		message.POST("/UploadAttachment", middleware.CheckLogin(true), controller.UploadFile)
+		message.GET("/ListMessages", middleware.CheckLogin(true), controller.GetPublishedPostLList)
+		message.POST("/PublishMessage", middleware.CheckLogin(true), controller.PublishMessage)
 	}
 
 }

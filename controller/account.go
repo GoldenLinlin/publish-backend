@@ -1,9 +1,11 @@
 package controller
 
 import (
-	"BIT-Helper/database"
-	"BIT-Helper/util/config"
-	"BIT-Helper/util/jwt"
+	"fmt"
+	"publish-backend/database"
+	"publish-backend/util/config"
+	"publish-backend/util/jwt"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -98,9 +100,17 @@ func ListAccounts(c *gin.Context) {
 
 // 验证用户令牌的有效性
 func ValidateUserToken(token string) (uint, bool) {
-	userID, isValid := jwt.VerifyUserToken(token, config.Config.Key)
+	userID, isValid, _ := jwt.VerifyUserToken(token, config.Config.Key)
 	if !isValid {
 		return 0, false
 	}
-	return userID, true
+	// Convert string to uint64 first
+	userID_uint64, err := strconv.ParseUint(userID, 10, 32)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return 0, false
+	}
+	// Convert uint64 to uint
+	userID_uint := uint(userID_uint64)
+	return userID_uint, true
 }

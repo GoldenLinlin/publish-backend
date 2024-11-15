@@ -1,8 +1,8 @@
 package database
 
 import (
-	"BIT-Helper/util/config"
 	"fmt"
+	"publish-backend/util/config"
 	"time"
 
 	"gorm.io/driver/mysql"

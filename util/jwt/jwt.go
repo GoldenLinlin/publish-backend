@@ -1,7 +1,7 @@
 package jwt
 
 import (
-	"BIT-Helper/database"
+	"publish-backend/database"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,8 +11,8 @@ var jwtKey = []byte("your-secret-key")
 
 // UserClaims 定义 JWT 的自定义声明结构
 type UserClaims struct {
-	UserID   string `json:"user_id"`
-	IsAdmin  bool   `json:"is_admin"`
+	UserID  string `json:"user_id"`
+	IsAdmin bool   `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 

@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"BIT-Helper/database"
-	"BIT-Helper/util/config"
-	"BIT-Helper/util/jwt"
 	"fmt"
+	"publish-backend/database"
+	"publish-backend/util/config"
+	"publish-backend/util/jwt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -26,8 +26,9 @@ func CleanUser(old_user database.User, old_user_secret database.UserSensitiveInf
 		UserID:   old_user.UserID,
 		Phone:    old_user_secret.Phone,
 		Username: old_user.Username,
-		Email:    old_user_secret.Email,
-		Avatar:   GetImageUrl(old_user.Avatar),
+
+		Email:  old_user_secret.Email,
+		Avatar: GetImageUrl(old_user.Avatar),
 	}
 	return user
 }

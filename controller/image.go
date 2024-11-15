@@ -1,17 +1,16 @@
 package controller
 
 import (
-	"BIT-Helper/database"
-	"BIT-Helper/util/config"
-	"BIT-Helper/util/saver"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"path/filepath"
-
-	"github.com/gin-gonic/gin"
+	"publish-backend/database"
+	"publish-backend/util/config"
+	"publish-backend/util/saver"
 )
 
 type ImageAPI struct {

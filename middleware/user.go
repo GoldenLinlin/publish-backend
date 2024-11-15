@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"BIT-Helper/util/config"
-	"BIT-Helper/util/jwt"
-	"strconv"
 	"github.com/gin-gonic/gin"
+	"publish-backend/util/config"
+	"publish-backend/util/jwt"
+	"strconv"
 )
 
 // 验证用户是否登录
