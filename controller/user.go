@@ -88,9 +88,8 @@ type UserRegisterQuery struct {
 }
 
 // 用户登录请求结构
-type UserLoginQuery struct {
-	UserID   uint   `json:"user_id"`                     // 用户ID（可选）
-	Phone    string `json:"phone"`                       // 手机号（可选）
+type UserLoginQuery struct { // 用户ID（可选）
+	User     string `json:"user"`                        // 手机号（可选）
 	Password string `json:"password" binding:"required"` // 密码
 }
 
@@ -108,12 +107,12 @@ func UserLogin(c *gin.Context) {
 	var err error
 
 	// 根据传入的字段来选择查询方式：用户ID或手机号
-	if query.UserID != 0 {
+	if query.User != 0 {
 		// 使用用户ID查找
-		err = database.DB.Where("user_id = ?", query.UserID).First(&sensitiveInfo).Error
-	} else if query.Phone != "" {
+		err = database.DB.Where("user_id = ?", query.User).First(&sensitiveInfo).Error
+	} else if query.User != "" {
 		// 使用手机号查找
-		err = database.DB.Where("phone = ?", query.Phone).First(&sensitiveInfo).Error
+		err = database.DB.Where("phone = ?", query.User).First(&sensitiveInfo).Error
 	} else {
 		// 如果未提供用户ID和手机号
 		c.JSON(400, gin.H{"msg": "请提供用户ID或手机号"})
