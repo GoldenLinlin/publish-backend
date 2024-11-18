@@ -101,20 +101,17 @@ func UserLogin(c *gin.Context) {
 		c.JSON(400, gin.H{"msg": "参数错误awa"})
 		return
 	}
-
+	uid64, _ := strconv.ParseUint(query.User, 10, 32)
+	uid := uint(uid64)
 	// 查找用户敏感信息表中的用户信息
 	var sensitiveInfo database.UserSensitiveInfo
 	var err error
 
 	// 根据传入的字段来选择查询方式：用户ID或手机号
-	err = database.DB.Where("user_id = ?", query.User).First(&sensitiveInfo).Error
+	err = database.DB.Where("user_id = ?", uid).First(&sensitiveInfo).Error
 	if err != nil {
 		// 使用手机号查找
 		err = database.DB.Where("phone = ?", query.User).First(&sensitiveInfo).Error
-	} else {
-		// 如果未提供用户ID和手机号
-		c.JSON(400, gin.H{"msg": "请提供用户ID或手机号"})
-		return
 	}
 
 	if err != nil {
