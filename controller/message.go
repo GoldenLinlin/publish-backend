@@ -6,9 +6,64 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"publish-backend/database"
+	"strconv"
 
 	"publish-backend/util/wpapi"
 )
+
+// 根据用户信息查询用户的wp token
+func GetUserWPToken(c *gin.Context) []string {
+	// Get the user ID from the context
+	idInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"msg": "用户未登录"})
+		return nil
+	}
+
+	// Convert user ID to string
+	userIDStr, ok := idInterface.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(500, gin.H{"msg": "用户ID格式错误"})
+		return nil
+	}
+
+	// Convert user ID to uint
+	uid64, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		c.JSON(500, gin.H{"msg": "用户ID转换失败"})
+		return nil
+	}
+	uid := uint(uid64)
+
+	// Query UserSocialAccount for the given user_id and platform_id = 1
+	var accountId []database.UserSocialAccount
+	if err := database.DB.Where("user_id = ? AND platform_id = ?", uid, 1).First(&accountId).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "查询账号失败"})
+		return nil
+	}
+
+	// 提取 account_id 字段
+	var accountIDs []uint
+	for _, account := range accountId {
+		accountIDs = append(accountIDs, account.AccountID)
+	}
+
+	// 使用提取的 account_id 列表进行查询
+	var wptokens []database.SensitiveAccountInfo
+	if err := database.DB.Where("account_id IN (?)", accountIDs).Find(&wptokens).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"msg": "查询敏感信息失败"})
+		return nil
+	}
+
+	var tokens []string
+	for _, token := range wptokens {
+		tokens = append(tokens, token.AccountToken)
+	}
+
+	return tokens
+
+}
 
 // 上传文件到wordpress并传回前端url列表
 func UploadFile(c *gin.Context) {
@@ -48,18 +103,21 @@ func UploadFile(c *gin.Context) {
 
 // 获取已发布内容
 func GetPublishedPostLList(c *gin.Context) {
-	posts, err := wpapi.GetUserPostList("your_token_here")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	tokens := GetUserWPToken(c)
 
 	var formattedPosts []map[string]interface{}
-	for _, post := range posts {
-		formattedPosts = append(formattedPosts, map[string]interface{}{
-			"title":     gjson.Get(post, "title").String(),
-			"timestamp": gjson.Get(post, "date").Int(),
-		})
+	for _, token := range tokens {
+		posts, err := wpapi.GetUserPostList(token)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		for _, post := range posts {
+			formattedPosts = append(formattedPosts, map[string]interface{}{
+				"title":     gjson.Get(post, "title.rendered").String(),
+				"timestamp": gjson.Get(post, "date").Int(),
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, formattedPosts)
@@ -67,6 +125,9 @@ func GetPublishedPostLList(c *gin.Context) {
 
 // 发布文章
 func PublishMessage(c *gin.Context) {
+	tokens := GetUserWPToken(c)
+
+	// Define the request body structure
 	var requestBody struct {
 		Type      []int    `json:"type"`
 		Title     string   `json:"title"`
@@ -80,11 +141,13 @@ func PublishMessage(c *gin.Context) {
 		return
 	}
 
-	// Publish the post
-	err := wpapi.PublishPost("your_token_here", "", requestBody.Title, requestBody.Intro, requestBody.ImageURLs)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	for _, token := range tokens {
+		// Publish the post
+		err := wpapi.PublishPost(token, "", requestBody.Title, requestBody.Intro, requestBody.ImageURLs)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Post published successfully"})

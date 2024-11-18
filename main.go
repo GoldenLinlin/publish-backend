@@ -25,7 +25,7 @@ func main() {
 	// app.Use(limits.RequestSizeLimiter(config.Config.Saver.MaxSize << 20))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
-		AllowHeaders: []string{"Content-Type", "fake-cookie"},
+		AllowHeaders: []string{"Content-Type", "fake_cookie"},
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		MaxAge:       12 * time.Hour,
 	}))
