@@ -12,10 +12,10 @@ import (
 // 绑定用户账号
 func BindAccount(c *gin.Context) {
 	var query struct {
-		PlatformID  int    `json:"platform_id" binding:"required"`
-		AccountName string `json:"name" binding:"required"`
-		Account     string `json:"account" binding:"required"`
-		Password    string `json:"password" binding:"required"`
+		PlatformName string `json:"platform_name" binding:"required"`
+		AccountName  string `json:"name" binding:"required"`
+		Account      string `json:"account" binding:"required"`
+		Password     string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&query); err != nil {
 		c.JSON(400, gin.H{"msg": "参数错误"})
@@ -43,18 +43,39 @@ func BindAccount(c *gin.Context) {
 		return
 	}
 	uid := uint(uid64)
+	platformMap := make(map[string]uint)
+	var platforms []database.Platform
+	if err := database.DB.Find(&platforms).Error; err != nil {
+		c.JSON(500, gin.H{"msg": "查询平台信息失败"})
+		return
+	}
+	for _, platform := range platforms {
+		platformMap[platform.PlatformName] = platform.PlatformID
+	}
+	PlatformID := int(platformMap[query.PlatformName])
 	// 保存账号信息
 	newAccount := database.UserSocialAccount{
 		UserID:      uid,
-		PlatformID:  query.PlatformID,
+		PlatformID:  PlatformID,
 		AccountName: query.AccountName,
+		State:       1,
 	}
-	if err := database.DB.Create(&newAccount).Error; err != nil {
-		c.JSON(500, gin.H{"msg": "账号绑定失败"})
+	var account database.UserSocialAccount
+	if err := database.DB.Where("user_id = ? AND platform_id = ? AND account_name = ?", uid, PlatformID, query.AccountName).First(&account).Error; err == nil {
+		c.JSON(404, gin.H{"msg": "账户已存在，请更换账号"})
+		return
+	}
+	if err := database.DB.Omit("account_id").Create(&newAccount).Error; err != nil {
+		c.JSON(500, gin.H{"msg": "账号绑定失败", "error": err.Error()})
 		return
 	}
 	var AccountToken string
-	AccountToken, _ = wpapi.GetWPJWTToken(query.Account, query.Password)
+	var bl error
+	AccountToken, bl = wpapi.GetWPJWTToken(query.Account, query.Password)
+	fmt.Println(AccountToken)
+	if bl != nil {
+		c.JSON(500, gin.H{"msg": "账号未注册或密码用户名错误"})
+	}
 	newSensitiveInfo := database.SensitiveAccountInfo{
 		AccountID:    newAccount.AccountID,
 		AccountToken: AccountToken,
@@ -66,11 +87,90 @@ func BindAccount(c *gin.Context) {
 	c.JSON(200, gin.H{"msg": "账号绑定成功"})
 }
 
+// 转换状态
+func ToggleAccountState(c *gin.Context) {
+	var query struct {
+		PlatformName string `json:"platform_name" binding:"required"`
+		AccountName  string `json:"account_name" binding:"required"`
+	}
+
+	// 解析前端请求的 JSON 数据
+	if err := c.ShouldBindJSON(&query); err != nil {
+		c.JSON(400, gin.H{"msg": "参数错误"})
+		return
+	}
+
+	// 验证用户令牌
+	idInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(500, gin.H{"msg": "用户未登录"})
+		return
+	}
+
+	// 将 user_id 转换为字符串
+	userIDStr, ok := idInterface.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(500, gin.H{"msg": "用户ID格式错误"})
+		return
+	}
+
+	// 将字符串形式的 user_id 转换为 uint
+	uid64, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		c.JSON(500, gin.H{"msg": "用户ID转换失败"})
+		return
+	}
+	uid := uint(uid64)
+
+	// 查询对应的平台信息以获取 PlatformID
+	var platform database.Platform
+	if err := database.DB.Where("platform_name = ?", query.PlatformName).First(&platform).Error; err != nil {
+		c.JSON(404, gin.H{"msg": "平台不存在"})
+		return
+	}
+
+	// 查找目标账户
+	var account database.UserSocialAccount
+	if err := database.DB.Where("user_id = ? AND platform_id = ? AND account_name = ?", uid, platform.PlatformID, query.AccountName).First(&account).Error; err != nil {
+		c.JSON(404, gin.H{"msg": "账户不存在"})
+		return
+	}
+
+	// 确定新的状态
+	newState := 1
+	if account.State == 1 {
+		newState = 0
+	}
+
+	// 更新账户状态
+	if err := database.DB.Model(&account).Update("state", newState).Error; err != nil {
+		c.JSON(500, gin.H{"msg": "账户状态切换失败"})
+		return
+	}
+
+	// 返回切换后的状态
+	c.JSON(200, gin.H{
+		"new_state": newState,
+	})
+}
+
 // 删除用户账号
 func DeleteAccount(c *gin.Context) {
 	var query struct {
-		PlatformID  int    `json:"platform_id" binding:"required"`
-		AccountName string `json:"account_name" binding:"required"`
+		PlatformName string `json:"platform_name" binding:"required"`
+		AccountName  string `json:"account_name" binding:"required"`
+	}
+	// Query platform information
+	var platforms []database.Platform
+	if err := database.DB.Find(&platforms).Error; err != nil {
+		c.JSON(500, gin.H{"msg": "查询平台信息失败"})
+		return
+	}
+
+	// Create a map of platform ID to platform name for quick lookup
+	platformMap := make(map[string]uint)
+	for _, platform := range platforms {
+		platformMap[platform.PlatformName] = platform.PlatformID
 	}
 	if err := c.ShouldBindJSON(&query); err != nil {
 		c.JSON(400, gin.H{"msg": "参数错误"})
@@ -97,12 +197,14 @@ func DeleteAccount(c *gin.Context) {
 		return
 	}
 	uid := uint(uid64)
-
+	PlatformID := uint(platformMap[query.PlatformName])
+	fmt.Println("PlatformID", PlatformID)
 	// 删除账号信息
-	if err := database.DB.Where("user_id = ? AND platform_id = ? AND account_name = ?", uid, query.PlatformID, query.AccountName).Delete(&database.UserSocialAccount{}).Error; err != nil {
+	if err := database.DB.Where("user_id = ? AND platform_id = ? AND account_name = ?", uid, PlatformID, query.AccountName).Delete(&database.UserSocialAccount{}).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "删除账号失败"})
 		return
 	}
+
 	c.JSON(200, gin.H{"msg": "账号删除成功"})
 }
 
@@ -160,7 +262,7 @@ func ListAccounts(c *gin.Context) {
 
 		item := gin.H{
 			"name":     account.AccountName,
-			"loggedIn": true, // Assume all accounts in the database are logged in
+			"loggedIn": account.State, // Assume all accounts in the database are logged in
 		}
 
 		accountMenus[platformName] = append(accountMenus[platformName], item)

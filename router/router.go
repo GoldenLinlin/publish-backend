@@ -29,5 +29,12 @@ func SetRouter(router *gin.Engine) {
 		message.GET("/ListMessages", middleware.CheckLogin(true), controller.GetPublishedPostLList)
 		message.POST("/PublishMessage", middleware.CheckLogin(true), controller.PublishMessage)
 	}
+	account := router.Group(("/account"))
+	{
+		account.POST("/BindAccount", middleware.CheckLogin(true), controller.BindAccount)
+		account.POST("/DeleteAccount", middleware.CheckLogin(true), controller.DeleteAccount)
+		account.POST("/LoginAccount", middleware.CheckLogin(true), controller.ToggleAccountState)
+		account.GET("/ListAccounts", middleware.CheckLogin(true), controller.ListAccounts)
+	}
 
 }

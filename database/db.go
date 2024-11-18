@@ -69,6 +69,7 @@ type UserSocialAccount struct {
 	PlatformID  int    `gorm:"not null" json:"platform_id"`
 	AccountName string `gorm:"not null;size:50" json:"account_name"`
 	AccountID   uint   `gorm:"primaryKey;autoIncrement" json:"account_id"`
+	State       int    `gorm:"not null" json:"state"`
 }
 
 // 账号敏感信息表，存储加密的 API 访问令牌
