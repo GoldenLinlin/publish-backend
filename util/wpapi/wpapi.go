@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tidwall/gjson"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/tidwall/gjson"
 )
 
 // 获取wp的jwt令牌
-func getWPJWTToken(username, password string) (string, error) {
+func GetWPJWTToken(username, password string) (string, error) {
 	url := "http://182.92.192.196:8080/wp-json/jwt-auth/v1/token"
 
 	// 构造请求数据

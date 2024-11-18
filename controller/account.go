@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"publish-backend/database"
+	"publish-backend/util/wpapi"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -11,10 +12,10 @@ import (
 // 绑定用户账号
 func BindAccount(c *gin.Context) {
 	var query struct {
-		Token        string `json:"token" binding:"required"`
-		PlatformID   int    `json:"platform_id" binding:"required"`
-		AccountName  string `json:"account_name" binding:"required"`
-		AccountToken string `json:"account_token" binding:"required"`
+		Token       string `json:"token" binding:"required"`
+		PlatformID  int    `json:"platform_id" binding:"required"`
+		AccountName string `json:"account_name" binding:"required"`
+		Password    string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&query); err != nil {
 		c.JSON(400, gin.H{"msg": "参数错误"})
@@ -52,9 +53,11 @@ func BindAccount(c *gin.Context) {
 		c.JSON(500, gin.H{"msg": "账号绑定失败"})
 		return
 	}
+	var AccountToken string
+	AccountToken, _ = wpapi.GetWPJWTToken(query.AccountName, query.Password)
 	newSensitiveInfo := database.SensitiveAccountInfo{
 		AccountID:    newAccount.AccountID,
-		AccountToken: query.AccountToken,
+		AccountToken: AccountToken,
 	}
 	if err := database.DB.Create(&newSensitiveInfo).Error; err != nil {
 		c.JSON(500, gin.H{"msg": "敏感信息保存失败"})
