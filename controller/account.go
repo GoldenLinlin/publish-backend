@@ -12,9 +12,9 @@ import (
 // 绑定用户账号
 func BindAccount(c *gin.Context) {
 	var query struct {
-		Token       string `json:"token" binding:"required"`
 		PlatformID  int    `json:"platform_id" binding:"required"`
-		AccountName string `json:"account_name" binding:"required"`
+		AccountName string `json:"name" binding:"required"`
+		Account     string `json:"account" binding:"required"`
 		Password    string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&query); err != nil {
@@ -54,7 +54,7 @@ func BindAccount(c *gin.Context) {
 		return
 	}
 	var AccountToken string
-	AccountToken, _ = wpapi.GetWPJWTToken(query.AccountName, query.Password)
+	AccountToken, _ = wpapi.GetWPJWTToken(query.Account, query.Password)
 	newSensitiveInfo := database.SensitiveAccountInfo{
 		AccountID:    newAccount.AccountID,
 		AccountToken: AccountToken,
