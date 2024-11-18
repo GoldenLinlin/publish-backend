@@ -1,16 +1,17 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
 	"publish-backend/util/config"
 	"publish-backend/util/jwt"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // 验证用户是否登录
 func CheckLogin(strict bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader("fake-cookie")
+		token := c.GetHeader("fake_cookie")
 		uid, ok, _ := jwt.VerifyUserToken(token, config.Config.Key)
 		if ok {
 			_, err := strconv.ParseUint(uid, 10, 32)
