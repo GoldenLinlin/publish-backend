@@ -107,10 +107,8 @@ func UserLogin(c *gin.Context) {
 	var err error
 
 	// 根据传入的字段来选择查询方式：用户ID或手机号
-	if query.User != 0 {
-		// 使用用户ID查找
-		err = database.DB.Where("user_id = ?", query.User).First(&sensitiveInfo).Error
-	} else if query.User != "" {
+	err = database.DB.Where("user_id = ?", query.User).First(&sensitiveInfo).Error
+	if err != nil {
 		// 使用手机号查找
 		err = database.DB.Where("phone = ?", query.User).First(&sensitiveInfo).Error
 	} else {
@@ -143,7 +141,7 @@ func UserLogin(c *gin.Context) {
 	// 设置 Token 到 Cookie 中
 	c.SetCookie("fake-cookie", token, int(config.Config.LoginExpire), "/", "localhost", false, true)
 
-	c.JSON(200, gin.H{"msg": "登录成功OvO", "user_id": query.UserID})
+	c.JSON(200, gin.H{"msg": "登录成功OvO"})
 }
 
 // 用户注册
