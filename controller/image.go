@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"path/filepath"
 	"publish-backend/database"
 	"publish-backend/util/config"
 	"publish-backend/util/saver"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ImageAPI struct {
@@ -71,6 +72,8 @@ func getImageExt(content []byte) string {
 		return ".png"
 	case "image/gif":
 		return ".gif"
+	case "image/mp4":
+		return ".mp4"
 	default:
 		return ""
 	}

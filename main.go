@@ -21,7 +21,7 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	app := gin.Default()
-	app.MaxMultipartMemory = 10 << 24 // 10MB
+	app.MaxMultipartMemory = 10 << 26 // 10MB
 	// app.Use(limits.RequestSizeLimiter(config.Config.Saver.MaxSize << 20))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
