@@ -38,7 +38,7 @@ func GetUserWPToken(c *gin.Context) []string {
 
 	// Query UserSocialAccount for the given user_id and platform_id = 1
 	var accountId []database.UserSocialAccount
-	if err := database.DB.Where("user_id = ? AND platform_id = ?", uid, 1).First(&accountId).Error; err != nil {
+	if err := database.DB.Where("user_id = ? AND platform_id = ? AND state = 1", uid, 1).First(&accountId).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "查询账号失败"})
 		return nil
 	}
@@ -67,9 +67,11 @@ func GetUserWPToken(c *gin.Context) []string {
 
 // 上传文件到wordpress并传回前端url列表
 func UploadFile(c *gin.Context) {
+	tokens := GetUserWPToken(c)
+
 	// multiple files
 	form, _ := c.MultipartForm()
-	files := form.File["upload[]"]
+	files := form.File["files"]
 	var fileURLs []map[string]string
 
 	for _, file := range files {
@@ -81,7 +83,7 @@ func UploadFile(c *gin.Context) {
 		}
 
 		// Upload the file to WordPress
-		fileURL, err := wpapi.UploadMedia("your_token_here", tempFilePath)
+		fileURL, err := wpapi.UploadMedia(tokens[0], tempFilePath)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -115,7 +117,7 @@ func GetPublishedPostLList(c *gin.Context) {
 		for _, post := range posts {
 			formattedPosts = append(formattedPosts, map[string]interface{}{
 				"title":     gjson.Get(post, "title.rendered").String(),
-				"timestamp": gjson.Get(post, "date").Int(),
+				"timestamp": gjson.Get(post, "date").String(),
 			})
 		}
 	}
