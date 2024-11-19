@@ -233,8 +233,9 @@ func UserGetInfo(c *gin.Context) {
 
 // 修改用户信息请求结构
 type UpdateUserInfoForm struct {
-	Email  string `form:"email"`  // 邮箱
-	Avatar string `form:"avatar"` // 头像URL
+	Username string `form:"username"` // 邮箱
+	Email    string `form:"email"`    // 邮箱
+	Avatar   string `form:"avatar"`   // 头像URL
 }
 
 func UpdateUserInfo(c *gin.Context) {
@@ -287,6 +288,7 @@ func UpdateUserInfo(c *gin.Context) {
 	}
 	if form.Avatar != "" {
 		user.Avatar = form.Avatar
+		user.Username = form.Username
 	}
 
 	// 保存更改
