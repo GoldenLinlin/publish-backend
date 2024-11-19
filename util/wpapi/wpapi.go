@@ -114,7 +114,9 @@ func PublishPost(token, postID, title, content string, urls []string) error {
 	//将urls转换为html格式并添加在content后面
 	//如果content为空，将urls代表视频插入到content中；如果content不为空，将urls代表图片插入到content中
 	if content == "" {
-		post.Content = "<video src=\"" + urls[0] + "\" controls=\"controls\"></video>"
+		for _, url := range urls {
+			post.Content = "<video src=\"" + url + "\" controls=\"controls\"></video>"
+		}
 	} else {
 		for _, url := range urls {
 			post.Content += "<img src=\"" + url + "\" />"

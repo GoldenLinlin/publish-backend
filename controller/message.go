@@ -70,37 +70,34 @@ func UploadFile(c *gin.Context) {
 	tokens := GetUserWPToken(c)
 
 	// multiple files
-	form, _ := c.MultipartForm()
-	files := form.File["files"]
-	var fileURLs []map[string]string
+	file, err := c.FormFile("files")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file is received"})
+		return
+	}
 
-	for _, file := range files {
-		// Save the uploaded file to a temporary location
-		tempFilePath := filepath.Join(os.TempDir(), file.Filename)
-		if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	// Save the uploaded file to a temporary location
+	tempFilePath := filepath.Join(os.TempDir(), file.Filename)
+	if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-		// Upload the file to WordPress
-		fileURL, err := wpapi.UploadMedia(tokens[0], tempFilePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	// Upload the file to WordPress
+	fileURL, err := wpapi.UploadMedia(tokens[0], tempFilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-		// Append the file URL to the list
-		fileURLs = append(fileURLs, map[string]string{"url": fileURL})
-
-		// Remove the temporary file
-		err = os.Remove(tempFilePath)
-		if err != nil {
-			return
-		}
+	// Remove the temporary file
+	err = os.Remove(tempFilePath)
+	if err != nil {
+		return
 	}
 
 	// Return the file URLs to the frontend
-	c.JSON(http.StatusOK, fileURLs)
+	c.JSON(http.StatusOK, gin.H{"url": fileURL})
 }
 
 // 获取已发布内容
