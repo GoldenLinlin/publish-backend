@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"net/http"
@@ -38,7 +39,7 @@ func GetUserWPToken(c *gin.Context) []string {
 
 	// Query UserSocialAccount for the given user_id and platform_id = 1
 	var accountId []database.UserSocialAccount
-	if err := database.DB.Where("user_id = ? AND platform_id = ? AND state = 1", uid, 1).First(&accountId).Error; err != nil {
+	if err := database.DB.Where("user_id = ? AND platform_id = ? AND state = 1", uid, 1).Find(&accountId).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "查询账号失败"})
 		return nil
 	}
@@ -125,6 +126,7 @@ func GetPublishedPostLList(c *gin.Context) {
 // 发布文章
 func PublishMessage(c *gin.Context) {
 	tokens := GetUserWPToken(c)
+	fmt.Println(tokens)
 
 	// Define the request body structure
 	var requestBody struct {
