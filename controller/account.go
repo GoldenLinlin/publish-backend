@@ -254,6 +254,13 @@ func ListAccounts(c *gin.Context) {
 
 	// Organize accounts by platform
 	accountMenus := make(map[string][]gin.H)
+
+	// Pre-fill accountMenus with empty lists for each platform
+	for _, platform := range platforms {
+		platformMap[platform.PlatformID] = platform.PlatformName
+		accountMenus[platform.PlatformName] = []gin.H{} // Initialize each platform with an empty list
+	}
+
 	for _, account := range accounts {
 		platformName, exists := platformMap[uint(account.PlatformID)]
 		if !exists {

@@ -136,9 +136,9 @@ func UserLogin(c *gin.Context) {
 		return
 	}
 	// 设置 Token 到 Cookie 中
-	c.SetCookie("fake_cookie", token, int(config.Config.LoginExpire), "/", "localhost", false, true)
+	// c.SetCookie("fake_cookie", token, int(config.Config.LoginExpire), "/", "localhost", false, true)
 
-	c.JSON(200, gin.H{"msg": "登录成功OvO"})
+	c.JSON(200, gin.H{"msg": "登录成功OvO", "fake_cookie": token})
 }
 
 // 用户注册
