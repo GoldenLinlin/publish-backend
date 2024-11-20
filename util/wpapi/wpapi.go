@@ -105,23 +105,14 @@ type Post struct {
 // 发布文章
 func PublishPost(token, postID, title, content string, urls []string) error {
 	url := "http://182.92.192.196:8080/wp-json/wp/v2/posts/" + postID
+
 	// 构造文章结构体
 	post := Post{
 		Title:   title,
-		Content: content,
+		Content: generateHTMLContent(content, urls),
 		Status:  "publish",
 	}
-	//将urls转换为html格式并添加在content后面
-	//如果content为空，将urls代表视频插入到content中；如果content不为空，将urls代表图片插入到content中
-	if content == "" {
-		for _, url := range urls {
-			post.Content = "<video src=\"" + url + "\" controls=\"controls\"></video>"
-		}
-	} else {
-		for _, url := range urls {
-			post.Content += "<img src=\"" + url + "\" />"
-		}
-	}
+
 	reqBody, _ := json.Marshal(post)
 
 	// 构造请求
@@ -151,6 +142,36 @@ func PublishPost(token, postID, title, content string, urls []string) error {
 	}
 
 	return nil
+}
+
+// 生成HTML内容
+func generateHTMLContent(content string, urls []string) string {
+	htmlTemplate := `
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	</head>
+	<body>
+		%s
+		%s
+	</body>
+	</html>
+	`
+
+	mediaContent := ""
+	if content == "" {
+		for _, url := range urls {
+			mediaContent += fmt.Sprintf(`<br><video src="%s" controls="controls"></video>`, url)
+		}
+	} else {
+		for _, url := range urls {
+			mediaContent += fmt.Sprintf(`<br><img src="%s" />`, url)
+		}
+	}
+
+	return fmt.Sprintf(htmlTemplate, content, mediaContent)
 }
 
 // 媒体上传（文件名不能包含中文）
