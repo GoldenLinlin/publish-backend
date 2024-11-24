@@ -75,6 +75,7 @@ func BindAccount(c *gin.Context) {
 	fmt.Println(AccountToken)
 	if bl != nil {
 		c.JSON(500, gin.H{"msg": "账号未注册或密码用户名错误"})
+		return
 	}
 	newSensitiveInfo := database.SensitiveAccountInfo{
 		AccountID:    newAccount.AccountID,
