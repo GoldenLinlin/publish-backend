@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 )
 
 // 根据用户信息查询用户的wp token
-func GetUserWPToken(c *gin.Context) []string {
+func GetUserPlatformToken(c *gin.Context, platform_id int) []string {
 	// Get the user ID from the context
 	idInterface, exists := c.Get("user_id")
 	if !exists {
@@ -39,7 +38,7 @@ func GetUserWPToken(c *gin.Context) []string {
 
 	// Query UserSocialAccount for the given user_id and platform_id = 1
 	var accountId []database.UserSocialAccount
-	if err := database.DB.Where("user_id = ? AND platform_id = ? AND state = 1", uid, 1).Find(&accountId).Error; err != nil {
+	if err := database.DB.Where("user_id = ? AND platform_id = ? AND state = 1", uid, platform_id).Find(&accountId).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"msg": "查询账号失败"})
 		return nil
 	}
@@ -63,13 +62,14 @@ func GetUserWPToken(c *gin.Context) []string {
 	}
 
 	return tokens
-
 }
 
 // 上传文件到wordpress并传回前端url列表
 func UploadFile(c *gin.Context) {
-	tokens := GetUserWPToken(c)
+	//其他平台的图片也可以使用相同的方式上传，或者直接上传在wordpress上即可
+	//只需要上传一次即可，不用重复上传
 
+	tokens := GetUserPlatformToken(c, 1)
 	// multiple files
 	file, err := c.FormFile("files")
 	if err != nil {
@@ -103,8 +103,8 @@ func UploadFile(c *gin.Context) {
 
 // 获取已发布内容
 func GetPublishedPostLList(c *gin.Context) {
-	tokens := GetUserWPToken(c)
-
+	//仅展示wordpress平台的文章，其他平台使用相同的方式接入
+	tokens := GetUserPlatformToken(c, 1)
 	var formattedPosts []map[string]interface{}
 	for _, token := range tokens {
 		posts, err := wpapi.GetUserPostList(token)
@@ -125,9 +125,6 @@ func GetPublishedPostLList(c *gin.Context) {
 
 // 发布文章
 func PublishMessage(c *gin.Context) {
-	tokens := GetUserWPToken(c)
-	fmt.Println(tokens)
-
 	// Define the request body structure
 	var requestBody struct {
 		Type      []int    `json:"type"`
@@ -135,21 +132,35 @@ func PublishMessage(c *gin.Context) {
 		Intro     string   `json:"intro"`
 		ImageURLs []string `json:"image_urls"`
 	}
-
 	// Parse the request body
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	//publish post to multi platforms
+	for _, platform := range requestBody.Type {
+		switch platform {
+		case 1:
+			// Publish the post to WordPress
+			tokens := GetUserPlatformToken(c, 1)
+			for _, token := range tokens {
+				// use wpapi.PublishPost to publish the post
+				err := wpapi.PublishPost(token, "", requestBody.Title, requestBody.Intro, requestBody.ImageURLs)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+		case 2:
+			// Publish the post to bilibili
+		case 3:
+			// Publish the post to 小红书
+		case 4:
+			// Publish the post to 微博
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid platform type"})
 
-	for _, token := range tokens {
-		// Publish the post
-		err := wpapi.PublishPost(token, "", requestBody.Title, requestBody.Intro, requestBody.ImageURLs)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
 		}
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "Post published successfully"})
 }
