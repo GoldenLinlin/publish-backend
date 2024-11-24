@@ -254,7 +254,7 @@ func ListAccounts(c *gin.Context) {
 
 	// Organize accounts by platform
 	accountMenus := make(map[string][]gin.H)
-
+	loggedInCount := 0
 	// Pre-fill accountMenus with empty lists for each platform
 	for _, platform := range platforms {
 		platformMap[platform.PlatformID] = platform.PlatformName
@@ -271,14 +271,16 @@ func ListAccounts(c *gin.Context) {
 			"name":     account.AccountName,
 			"loggedIn": account.State, // Assume all accounts in the database are logged in
 		}
-
+		if account.State == 1 {
+			loggedInCount++
+		}
 		accountMenus[platformName] = append(accountMenus[platformName], item)
 	}
 
 	// Format the response
 	response := gin.H{
 		"totalAccounts":    len(accounts),
-		"loggedInAccounts": len(accounts), // All accounts are logged in based on DB
+		"loggedInAccounts": loggedInCount, //len(accounts), // All accounts are logged in based on DB
 		"accountMenus": func() []gin.H {
 			menus := []gin.H{}
 			for title, items := range accountMenus {
